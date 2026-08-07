@@ -17,6 +17,10 @@ export HOMEBREW_NO_AUTO_UPDATE="${HOMEBREW_NO_AUTO_UPDATE:-1}"
 export HOMEBREW_NO_INSTALL_CLEANUP="${HOMEBREW_NO_INSTALL_CLEANUP:-1}"
 export HOMEBREW_NO_ENV_HINTS="${HOMEBREW_NO_ENV_HINTS:-1}"
 
+# Temporary reload-runner bootstrap. This working-tree-only change is captured
+# on the ephemeral build branch and is removed after the tagged artifact lands.
+"$SCRIPT_DIR/install-rust-ci.sh"
+
 publish_zig_for_later_steps() {
   local zig_path="$1"
   local zig_dir

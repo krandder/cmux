@@ -193,6 +193,43 @@ final class AppearanceSettingsTests: XCTestCase {
         ])
     }
 
+    // Regression: https://github.com/manaflow-ai/cmux/issues/9588
+    // Surface-targeted Ghostty reloads must install the newly resolved config
+    // before applying its color scheme. Otherwise a light background can be
+    // paired with the previous near-white foreground.
+    func testSurfaceConfigReloadPreservesHardReloadAndUpdatesConfigBeforeColorScheme() throws {
+        let fakeSurface = try XCTUnwrap(UnsafeMutableRawPointer(bitPattern: 0x9588))
+        var events: [String] = []
+
+        GhosttySurfaceConfigurationRefresh.applyConfigurationReload(
+            to: fakeSurface,
+            soft: false,
+            source: "action.reload_config.surface:test",
+            redrawReason: "surface.reloadConfig",
+            reloadSurfaceConfiguration: { surface, soft, source in
+                XCTAssertEqual(surface, fakeSurface)
+                XCTAssertFalse(soft)
+                events.append("reload:\(source)")
+            },
+            applySurfaceColorScheme: {
+                events.append("color-scheme")
+            },
+            refreshHostBackground: {
+                events.append("host-background")
+            },
+            forceRefresh: { reason in
+                events.append("force-refresh:\(reason)")
+            }
+        )
+
+        XCTAssertEqual(events, [
+            "reload:action.reload_config.surface:test",
+            "color-scheme",
+            "host-background",
+            "force-refresh:surface.reloadConfig"
+        ])
+    }
+
     func testCmuxThemeFinalReloadUsesFinalSource() {
         XCTAssertEqual(
             GhosttySurfaceConfigurationRefresh.cmuxThemeReloadSource(phase: "final"),

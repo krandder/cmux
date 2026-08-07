@@ -140,7 +140,7 @@ struct CmuxDurableDeepLinkRestoreTests {
         #expect(resolution == .surface(workspaceId: workspace.id, panelId: panelId))
     }
 
-    @Test func terminalContextMenuSurfaceLinkUsesMappedPanelStableId() throws {
+    @Test func terminalContextMenuSurfaceLinkUsesLivePanelId() throws {
         let manager = TabManager()
         let workspace = try #require(manager.selectedWorkspace)
         let pane = try #require(workspace.bonsplitController.allPaneIds.first)
@@ -157,8 +157,8 @@ struct CmuxDurableDeepLinkRestoreTests {
 
         #expect(
             link == CmuxNavigationURLRequest.surfaceLink(
-                workspaceId: workspace.stableId,
-                surfaceId: panel.stableSurfaceId,
+                workspaceId: workspace.id,
+                surfaceId: panel.id,
                 scheme: scheme
             )
         )

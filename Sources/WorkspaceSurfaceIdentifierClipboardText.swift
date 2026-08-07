@@ -75,11 +75,10 @@ enum WorkspaceSurfaceIdentifierClipboardText {
 
     @MainActor
     static func makeSurfaceLink(workspace: Workspace, panelId: UUID) -> String? {
-        guard let target = workspace.surfaceOwnershipTarget(for: panelId),
-              let containerPanel = workspace.panels[target.containerPanelID] else { return nil }
+        guard let target = workspace.surfaceOwnershipTarget(for: panelId) else { return nil }
         return makeSurfaceLink(
-            workspaceId: workspace.stableId,
-            surfaceId: containerPanel.stableSurfaceId
+            workspaceId: workspace.id,
+            surfaceId: target.surfaceID
         )
     }
 

@@ -1,0 +1,42 @@
+name: fork-build-app
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Branch to build
+        required: true
+        default: keyboard-nav-skip-collapsed
+
+jobs:
+  build:
+    runs-on: macos-26
+    timeout-minutes: 75
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+          submodules: recursive
+
+      - name: Download pre-built GhosttyKit.xcframework
+        run: ./scripts/download-prebuilt-ghosttykit.sh
+
+      - name: Install Rust
+        run: ./scripts/install-rust-ci.sh
+
+      - name: Build Debug app
+        run: |
+          set -euo pipefail
+          xcodebuild -project cmux.xcodeproj -scheme cmux -configuration Debug \
+            -destination 'platform=macOS' \
+            -derivedDataPath "$RUNNER_TEMP/dd" \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO build
+          APP=$(find "$RUNNER_TEMP/dd/Build/Products/Debug" -maxdepth 1 -name "*.app" | head -1)
+          ditto -c -k --keepParent "$APP" cmux-fork-debug.zip
+
+      - name: Upload app artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cmux-fork-debug
+          path: cmux-fork-debug.zip
+          retention-days: 14

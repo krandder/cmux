@@ -130,7 +130,6 @@ struct RemoteTmuxNotificationLifecycleTests {
                 forPanelId: panePanel.id
             ) != .notTerminalPanel
         )
-        let containerPanel = try #require(harness.workspace.panels[containerPanelID])
         let appDelegate = try #require(AppDelegate.shared)
         #expect(appDelegate.locateSurface(surfaceId: panePanel.id)?.workspaceId == harness.workspace.id)
         #expect(
@@ -144,8 +143,8 @@ struct RemoteTmuxNotificationLifecycleTests {
                 workspace: harness.workspace,
                 panelId: panePanel.id
             ) == WorkspaceSurfaceIdentifierClipboardText.makeSurfaceLink(
-                workspaceId: harness.workspace.stableId,
-                surfaceId: containerPanel.stableSurfaceId
+                workspaceId: harness.workspace.id,
+                surfaceId: panePanel.id
             )
         )
 

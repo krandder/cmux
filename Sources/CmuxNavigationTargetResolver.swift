@@ -43,6 +43,9 @@ struct CmuxNavigationTargetResolver {
                 if surfaceByRuntimeId[surface.panelId] == nil {
                     surfaceByRuntimeId[surface.panelId] = (workspace.workspaceId, surface.panelId)
                 }
+                for alias in surface.panelIdAliases where surfaceByRuntimeId[alias] == nil {
+                    surfaceByRuntimeId[alias] = (workspace.workspaceId, surface.panelId)
+                }
                 if surfaceByStableId[surface.stableSurfaceId] == nil {
                     surfaceByStableId[surface.stableSurfaceId] = (workspace.workspaceId, surface.panelId)
                 }
@@ -95,6 +98,9 @@ struct CmuxNavigationTargetResolver {
     private func resolveSurface(_ id: UUID, in workspace: WorkspaceDescriptor) -> UUID? {
         if workspace.surfaces.contains(where: { $0.panelId == id }) {
             return id
+        }
+        if let surface = workspace.surfaces.first(where: { $0.panelIdAliases.contains(id) }) {
+            return surface.panelId
         }
         return workspace.surfaces.first(where: { $0.stableSurfaceId == id })?.panelId
     }

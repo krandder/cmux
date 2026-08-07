@@ -140,7 +140,7 @@ struct CmuxDurableDeepLinkRestoreTests {
         #expect(resolution == .surface(workspaceId: workspace.id, panelId: panelId))
     }
 
-    @Test func terminalContextMenuSurfaceLinkUsesMappedPanelStableId() throws {
+    @Test func terminalContextMenuSurfaceLinkUsesLivePanelId() throws {
         let manager = TabManager()
         let workspace = try #require(manager.selectedWorkspace)
         let pane = try #require(workspace.bonsplitController.allPaneIds.first)
@@ -157,8 +157,8 @@ struct CmuxDurableDeepLinkRestoreTests {
 
         #expect(
             link == CmuxNavigationURLRequest.surfaceLink(
-                workspaceId: workspace.stableId,
-                surfaceId: panel.stableSurfaceId,
+                workspaceId: workspace.id,
+                surfaceId: panel.id,
                 scheme: scheme
             )
         )
@@ -200,6 +200,68 @@ struct CmuxDurableDeepLinkRestoreTests {
             )
         )
         #expect(target == .surface(workspaceId: workspace.id, surfaceId: panel.id))
+    }
+
+    @Test func copiedLiveSurfaceLinkResolvesAfterRestoredPanelRemapsId() throws {
+        let manager = TabManager()
+        let workspace = try #require(manager.selectedWorkspace)
+        let pane = try #require(workspace.bonsplitController.allPaneIds.first)
+        let panel = try #require(workspace.newWorkspaceTodoSurface(inPane: pane, focus: true))
+        workspace.setPanelCustomTitle(panelId: panel.id, title: "Linked todo")
+
+        let link = try #require(
+            WorkspaceSurfaceIdentifierClipboardText.makeSurfaceLink(
+                workspace: workspace,
+                panelId: panel.id
+            )
+        )
+        #expect(
+            link == CmuxNavigationURLRequest.surfaceLink(
+                workspaceId: workspace.id,
+                surfaceId: panel.id,
+                scheme: scheme
+            )
+        )
+
+        let snapshot = manager.sessionSnapshot(includeScrollback: false)
+        let restored = TabManager()
+        restored.restoreSessionSnapshot(snapshot)
+
+        let restoredWorkspace = try #require(restored.tabs.first)
+        let restoredPanelId = try #require(
+            restoredWorkspace.panelCustomTitles.first(where: { $0.value == "Linked todo" })?.key
+        )
+        #expect(restoredWorkspace.id == workspace.id)
+        #expect(restoredPanelId != panel.id)
+        let resolver = CmuxNavigationTargetResolver(
+            workspaces: restored.tabs.map(\.cmuxNavigationDescriptor)
+        )
+        let restoredResolution = try resolver.resolve(parsedTarget(link))
+        #expect(
+            restoredResolution ==
+                .surface(workspaceId: restoredWorkspace.id, panelId: restoredPanelId)
+        )
+
+        let restoredSnapshot = restored.sessionSnapshot(includeScrollback: false)
+        let restoredPanelSnapshot = try #require(
+            restoredSnapshot.workspaces.first?.panels.first { $0.customTitle == "Linked todo" }
+        )
+        #expect(restoredPanelSnapshot.navigationSurfaceAliases?.contains(panel.id) == true)
+
+        let restoredAgain = TabManager()
+        restoredAgain.restoreSessionSnapshot(restoredSnapshot)
+        let restoredAgainWorkspace = try #require(restoredAgain.tabs.first)
+        let restoredAgainPanelId = try #require(
+            restoredAgainWorkspace.panelCustomTitles.first(where: { $0.value == "Linked todo" })?.key
+        )
+        let restoredAgainResolver = CmuxNavigationTargetResolver(
+            workspaces: restoredAgain.tabs.map(\.cmuxNavigationDescriptor)
+        )
+        let restoredAgainResolution = try restoredAgainResolver.resolve(parsedTarget(link))
+        #expect(
+            restoredAgainResolution ==
+                .surface(workspaceId: restoredAgainWorkspace.id, panelId: restoredAgainPanelId)
+        )
     }
 
     @Test func closedPanelRestoreWithLiveDockIdentityMintsFreshStableSurfaceId() throws {

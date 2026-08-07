@@ -1671,6 +1671,7 @@ struct SessionProjectPanelSnapshot: Codable, Sendable {
 struct SessionPanelSnapshot: Codable, Sendable {
     var id: UUID
     var stableSurfaceId: UUID? = nil
+    var navigationSurfaceAliases: [UUID]? = nil
     var type: PanelType
     var title: String?
     var customTitle: String?

@@ -722,6 +722,8 @@ extension Workspace {
         return SessionPanelSnapshot(
             id: panelId,
             stableSurfaceId: panel.stableSurfaceId,
+            navigationSurfaceAliases: navigationSurfaceAliasesByPanelId[panelId]
+                .map { aliases in aliases.sorted { $0.uuidString < $1.uuidString } },
             type: panel.panelType,
             title: panelTitle,
             customTitle: customTitle,
@@ -1860,6 +1862,7 @@ extension Workspace {
 
     func applySessionPanelMetadata(_ snapshot: SessionPanelSnapshot, toPanelId panelId: UUID) {
         adoptPersistedStableSurfaceId(from: snapshot, panelId: panelId)
+        restoreNavigationSurfaceAliases(from: snapshot, toPanelId: panelId)
 
         if let title = snapshot.title?.trimmingCharacters(in: .whitespacesAndNewlines), !title.isEmpty {
             panelTitles[panelId] = title
@@ -1949,6 +1952,20 @@ extension Workspace {
             } else {
                 _ = browserPanel.hideDeveloperTools()
             }
+        }
+    }
+
+    private func restoreNavigationSurfaceAliases(
+        from snapshot: SessionPanelSnapshot,
+        toPanelId panelId: UUID
+    ) {
+        var aliases = Set(snapshot.navigationSurfaceAliases ?? [])
+        aliases.insert(snapshot.id)
+        aliases.remove(panelId)
+        if aliases.isEmpty {
+            navigationSurfaceAliasesByPanelId.removeValue(forKey: panelId)
+        } else {
+            navigationSurfaceAliasesByPanelId[panelId] = aliases
         }
     }
 
@@ -2326,6 +2343,11 @@ final class Workspace: Identifiable, ObservableObject {
         get { paneTree.panels }
         set { paneTree.panels = newValue }
     }
+
+    /// Prior live panel IDs that copied surface links may still contain.
+    /// Stable IDs remain the canonical durable identity; aliases only bridge
+    /// live-ID links across restore paths that remap a panel ID.
+    var navigationSurfaceAliasesByPanelId: [UUID: Set<UUID>] = [:]
 
     /// Monotonic counter bumped only when the spatial (left-to-right, top-to-bottom)
     /// order of panels changes without the panel *set* changing — i.e. a pure
@@ -5396,6 +5418,7 @@ final class Workspace: Identifiable, ObservableObject {
         remoteDirectoryTrustRequiredPanelIds = remoteDirectoryTrustRequiredPanelIds.filter { validSurfaceIds.contains($0) }
         remoteDirectoryReportPanelIds = remoteDirectoryReportPanelIds.filter { validSurfaceIds.contains($0) }
         panelTitles = panelTitles.filter { validSurfaceIds.contains($0.key) }
+        navigationSurfaceAliasesByPanelId = navigationSurfaceAliasesByPanelId.filter { validSurfaceIds.contains($0.key) }
         panelCustomTitles = panelCustomTitles.filter { validSurfaceIds.contains($0.key) }
         panelCustomTitleSources = panelCustomTitleSources.filter { validSurfaceIds.contains($0.key) }
         pinnedPanelIds = pinnedPanelIds.filter { validSurfaceIds.contains($0) }

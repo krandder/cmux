@@ -15,6 +15,9 @@ extension Workspace {
                 guard surfaceIdFromPanelId(panelId) != nil else { return nil }
                 return CmuxNavigationTargetResolver.SurfaceDescriptor(
                     panelId: panelId,
+                    panelIdAliases: Array(
+                        navigationSurfaceAliasesByPanelId[panelId] ?? []
+                    ).sorted { $0.uuidString < $1.uuidString },
                     stableSurfaceId: panel.stableSurfaceId
                 )
             }
